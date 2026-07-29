@@ -1,0 +1,64 @@
+/* Fully black background, no scrolling, no gestures (perfect for toddlers) */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  width: 100vw;
+  height: 100dvh;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #000000;
+  font-family: 'Fredoka', cursive, sans-serif;
+  position: fixed; /* Prevents bounce scroll on mobile safari */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  touch-action: none; /* Disable panning/zooming entirely */
+}
+
+#fullscreenBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 45, 80, 0.65);
+  border: 2.5px solid #ffffff;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  touch-action: manipulation;
+  outline: none;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+#fullscreenBtn:active {
+  transform: scale(0.90);
+  background: rgba(0, 90, 150, 0.95);
+}
+
+#gameCanvas {
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  height: 100vh;
+  background-color: #000000;
+}
