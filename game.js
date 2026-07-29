@@ -41,16 +41,21 @@ const EN_SPEECH_MAP = {
 const DIGIT_RU_NAMES = ['Ноль', 'Один', 'Два', 'Три', 'Четыре', 'Пять', 'Шесть', 'Семь', 'Восемь', 'Девять'];
 const DIGIT_EN_NAMES = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
 
-// Game Settings State & Storage
-let settings = {
-  includeRussianDigits: true,
-  includeEnglishDigits: true,
-  includeRussian: true,
-  includeEnglish: true,
-  isShuffle: true,
-  voiceOnOpen: true
-};
+// Game Settings State & Storage (Auto-detects default language pool based on user region locale)
+function detectRegionDefaultSettings() {
+  const userLangs = (navigator.languages || [navigator.language || 'ru']).map(l => String(l).toLowerCase());
+  const isRussianRegion = userLangs.some(l => l.startsWith('ru') || l.includes('by') || l.includes('kz') || l.includes('mo'));
 
+  return {
+    includeRussianDigits: isRussianRegion,
+    includeEnglishDigits: !isRussianRegion,
+    includeRussian: isRussianRegion,
+    includeEnglish: !isRussianRegion,
+    isShuffle: true
+  };
+}
+
+let settings = detectRegionDefaultSettings();
 let sequentialIndex = 0;
 
 function loadSettings() {
@@ -59,8 +64,12 @@ function loadSettings() {
     if (saved) {
       const parsed = JSON.parse(saved);
       settings = Object.assign(settings, parsed);
+    } else {
+      settings = detectRegionDefaultSettings();
     }
-  } catch (e) {}
+  } catch (e) {
+    settings = detectRegionDefaultSettings();
+  }
 }
 
 function saveSettings() {
@@ -866,22 +875,38 @@ function triggerVictory() {
   playUndertowSound();
 }
 
+function updateFullscreenUI() {
+  const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    if (isFS) {
+      settingsBtn.classList.add('hidden');
+    } else {
+      settingsBtn.classList.remove('hidden');
+    }
+  }
+}
+
+document.addEventListener('fullscreenchange', updateFullscreenUI);
+document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+
 function toggleFullScreen() {
   const doc = document.documentElement;
   if (!document.fullscreenElement && !document.webkitFullscreenElement) {
     if (doc.requestFullscreen) {
-      doc.requestFullscreen().catch(e => {});
+      doc.requestFullscreen().then(updateFullscreenUI).catch(e => {});
     } else if (doc.webkitRequestFullscreen) {
       doc.webkitRequestFullscreen().catch(e => {});
     }
     try { window.scrollTo(0, 1); } catch (e) {}
   } else {
     if (document.exitFullscreen) {
-      document.exitFullscreen().catch(e => {});
+      document.exitFullscreen().then(updateFullscreenUI).catch(e => {});
     } else if (document.webkitExitFullscreen) {
       document.webkitExitFullscreen().catch(e => {});
     }
   }
+  setTimeout(updateFullscreenUI, 100);
 }
 
 const fsBtn = document.getElementById('fullscreenBtn');
