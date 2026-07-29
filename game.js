@@ -6,13 +6,116 @@ const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
 
-// Full set of Numbers (0-9) and Capital Letters (A-Z)
-const ALL_CHARACTERS = [
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+// Character Pools: Digits, Russian Alphabet (А-Я), English Alphabet (A-Z)
+const DIGIT_CHARACTERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+const RU_CHARACTERS = [
+  'А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И',
+  'Й', 'К', 'Л', 'М', 'Н', 'О', 'П', 'Р', 'С', 'Т',
+  'У', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ', 'Ы', 'Ь',
+  'Э', 'Ю', 'Я'
+];
+
+const EN_CHARACTERS = [
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
   'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 
   'U', 'V', 'W', 'X', 'Y', 'Z'
 ];
+
+// Pronunciation Maps for Speech Synthesis
+const RU_SPEECH_MAP = {
+  'А': 'А', 'Б': 'Бэ', 'В': 'Вэ', 'Г': 'Гэ', 'Д': 'Дэ', 'Е': 'Е', 'Ё': 'Ё',
+  'Ж': 'Жэ', 'З': 'Зэ', 'И': 'И', 'Й': 'И краткое', 'К': 'Ка', 'Л': 'Эл',
+  'М': 'Эм', 'Н': 'Эн', 'О': 'О', 'П': 'Пэ', 'Р': 'Эр', 'С': 'Эс', 'Т': 'Тэ',
+  'У': 'У', 'Ф': 'Эф', 'Х': 'Ха', 'Ц': 'Цэ', 'Ч': 'Че', 'Ш': 'Ша', 'Щ': 'Ща',
+  'Ъ': 'Твёрдый знак', 'Ы': 'Ы', 'Ь': 'Мягкий знак', 'Э': 'Э', 'Ю': 'Ю', 'Я': 'Я'
+};
+
+const EN_SPEECH_MAP = {
+  'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D', 'E': 'E', 'F': 'F', 'G': 'G',
+  'H': 'H', 'I': 'I', 'J': 'J', 'K': 'K', 'L': 'L', 'M': 'M', 'N': 'N',
+  'O': 'O', 'P': 'P', 'Q': 'Q', 'R': 'R', 'S': 'S', 'T': 'T', 'U': 'U',
+  'V': 'V', 'W': 'W', 'X': 'X', 'Y': 'Y', 'Z': 'Z'
+};
+
+const DIGIT_RU_NAMES = ['Ноль', 'Один', 'Два', 'Три', 'Четыре', 'Пять', 'Шесть', 'Семь', 'Восемь', 'Девять'];
+const DIGIT_EN_NAMES = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+
+// Game Settings State & Storage
+let settings = {
+  includeRussianDigits: true,
+  includeEnglishDigits: true,
+  includeRussian: true,
+  includeEnglish: true,
+  isShuffle: true,
+  voiceOnOpen: true
+};
+
+let sequentialIndex = 0;
+
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem('digiclean_settings');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      settings = Object.assign(settings, parsed);
+    }
+  } catch (e) {}
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem('digiclean_settings', JSON.stringify(settings));
+  } catch (e) {}
+}
+
+loadSettings();
+
+function getActiveCharacterPool() {
+  let pool = [];
+
+  if (settings.includeRussianDigits) {
+    for (let i = 0; i <= 9; i++) {
+      pool.push({ char: String(i), lang: 'ru' });
+    }
+  }
+
+  if (settings.includeEnglishDigits) {
+    for (let i = 0; i <= 9; i++) {
+      pool.push({ char: String(i), lang: 'en' });
+    }
+  }
+
+  if (settings.includeRussian) {
+    RU_CHARACTERS.forEach(c => pool.push({ char: c, lang: 'ru' }));
+  }
+
+  if (settings.includeEnglish) {
+    EN_CHARACTERS.forEach(c => pool.push({ char: c, lang: 'en' }));
+  }
+
+  if (pool.length === 0) {
+    settings.includeRussianDigits = true;
+    for (let i = 0; i <= 9; i++) {
+      pool.push({ char: String(i), lang: 'ru' });
+    }
+    saveSettings();
+  }
+
+  return pool;
+}
+
+function getNextCharacter() {
+  const pool = getActiveCharacterPool();
+  if (settings.isShuffle) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  } else {
+    if (sequentialIndex >= pool.length) sequentialIndex = 0;
+    const item = pool[sequentialIndex];
+    sequentialIndex = (sequentialIndex + 1) % pool.length;
+    return item;
+  }
+}
 
 let currentLevelIndex = 0;
 let activeCharacter = null;
@@ -244,14 +347,39 @@ function playUndertowSound() {
   } catch (e) {}
 }
 
-// CUTE 5-YEAR-OLD CHILD VOICE MP3 PLAYER (100% REAL ANA KIDS VOICE MP3s!)
+// REAL VOICE MP3 PLAYER WITH CUTE CHILD VOICE PITCH MODULATION
 let letterAudioObject = null;
 
-function playLetterAudio(char) {
-  if (mainMute) return;
+function speakCharacter(target) {
+  if (mainMute || !target) return;
 
-  // Stream clean pre-recorded CUTE CHILD VOICE MP3 directly from local ./audio/ folder!
-  const localAudioUrl = `audio/${char}.mp3`;
+  let char = target;
+  let lang = 'ru';
+
+  if (typeof target === 'object') {
+    char = target.char || target;
+    lang = target.lang || (/[А-Яа-яЁё]/.test(char) ? 'ru' : 'en');
+  } else if (activeCharacter && activeCharacter.char === target) {
+    char = activeCharacter.char;
+    lang = activeCharacter.lang || (/[А-Яа-яЁё]/.test(char) ? 'ru' : 'en');
+  } else {
+    lang = /[А-Яа-яЁё]/.test(char) ? 'ru' : 'en';
+  }
+
+  const charCode = char.charCodeAt(0);
+  const candidateUrls = [];
+
+  if (lang === 'ru') {
+    candidateUrls.push(`audio/ru_${charCode}.mp3`);
+    candidateUrls.push(`audio/ru_${char}.mp3`);
+    candidateUrls.push(`audio/${charCode}.mp3`);
+    candidateUrls.push(`audio/${char}.mp3`);
+  } else {
+    candidateUrls.push(`audio/en_${char}.mp3`);
+    candidateUrls.push(`audio/en_${charCode}.mp3`);
+    candidateUrls.push(`audio/${char}.mp3`);
+    candidateUrls.push(`audio/${charCode}.mp3`);
+  }
 
   try {
     if (letterAudioObject) {
@@ -259,12 +387,79 @@ function playLetterAudio(char) {
       letterAudioObject = null;
     }
 
-    letterAudioObject = new Audio(localAudioUrl);
-    letterAudioObject.volume = 1.0;
-    letterAudioObject.play().catch(e => {
-      // Quiet fail if browser muted
-    });
+    const tryPlayAudio = (index) => {
+      if (index >= candidateUrls.length) {
+        console.warn(`[MP3 Audio] Could not play any candidate URL for '${char}' (${lang}):`, candidateUrls);
+        speakWithWebSpeech(char, lang);
+        return;
+      }
+      const audioUrl = candidateUrls[index];
+      console.log(`[MP3 Audio] Playing local child-voiced MP3: ${audioUrl}`);
+      letterAudioObject = new Audio(audioUrl);
+      letterAudioObject.volume = 1.0;
+
+      const playPromise = letterAudioObject.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log(`[MP3 Audio] Success playing: ${audioUrl}`);
+        }).catch(e => {
+          console.warn(`[MP3 Audio] Failed playing ${audioUrl}, trying next candidate...`, e);
+          tryPlayAudio(index + 1);
+        });
+      } else {
+        speakWithWebSpeech(char, lang);
+      }
+    };
+
+    tryPlayAudio(0);
+  } catch (e) {
+    console.error(`[MP3 Audio] Error playing character sound for '${char}':`, e);
+    speakWithWebSpeech(char, lang);
+  }
+}
+
+function speakWithWebSpeech(char, lang = 'ru') {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+
+    let textToSpeak = char;
+    let bcp47 = lang === 'ru' ? 'ru-RU' : 'en-US';
+
+    if (/[0-9]/.test(char)) {
+      const idx = parseInt(char, 10);
+      if (lang === 'ru') {
+        textToSpeak = DIGIT_RU_NAMES[idx] || char;
+        bcp47 = 'ru-RU';
+      } else {
+        textToSpeak = DIGIT_EN_NAMES[idx] || char;
+        bcp47 = 'en-US';
+      }
+    } else if (/[А-Яа-яЁё]/.test(char)) {
+      textToSpeak = RU_SPEECH_MAP[char] || char;
+      bcp47 = 'ru-RU';
+    } else if (/[A-Za-z]/.test(char)) {
+      textToSpeak = EN_SPEECH_MAP[char] || char;
+      bcp47 = 'en-US';
+    }
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = bcp47;
+    utterance.rate = 0.90;
+    utterance.pitch = 1.35; // Cute Child Pitch
+
+    const voices = window.speechSynthesis.getVoices();
+    const voiceMatch = voices.find(v => v.lang.startsWith(bcp47.slice(0, 2)));
+    if (voiceMatch) {
+      utterance.voice = voiceMatch;
+    }
+
+    window.speechSynthesis.speak(utterance);
   } catch (e) {}
+}
+
+function playLetterAudio(char) {
+  speakCharacter(char);
 }
 
 // Rushing Ocean Wave Sound Effect for Victory Wash-Away (Triggered EXACTLY as Wave Rolls Down!)
@@ -315,15 +510,16 @@ function playWaveRushSound() {
 function generateBeachProps(targetX = width / 2, targetY = height / 2) {
   const props = [];
   const minDim = Math.min(width, height);
-  const count = Math.min(20, Math.max(10, Math.floor(width / 36)));
 
-  // RARE BURIED RELIC UNCOVERING (45% chance per level to contain 1 buried artifact under sand!)
-  if (Math.random() < 0.48) {
+  // Original total count of beach items
+  const count = Math.min(22, Math.max(12, Math.floor(width / 34)));
+
+  // Buried relic logic (80% chance for 1 buried artifact under sand)
+  if (Math.random() < 0.80) {
     const artifacts = ['bottle', 'boot', 'fish_skeleton', 'anchor', 'treasure'];
     const chosenArtifact = artifacts[Math.floor(Math.random() * artifacts.length)];
     const angle = Math.random() * Math.PI * 2;
-    // Responsive Offset Distance (safely cleared away from letter on mobile!)
-    const radius = minDim * 0.28 + Math.random() * 35;
+    const radius = minDim * 0.25 + Math.random() * 30;
     const relicSize = minDim * 0.11;
 
     props.push({
@@ -335,19 +531,22 @@ function generateBeachProps(targetX = width / 2, targetY = height / 2) {
       color: '#d4a373',
       isFloating: false,
       isBuried: true, // IMMOVABLE UNDER SAND!
+      uncoverProgress: 0.0, // GRADUAL ARCHEOLOGICAL EXCAVATION PROGRESS
       vx: 0,
       vy: 0,
       vRotation: 0
     });
   }
 
+  // Organic, natural distribution slightly denser near the target letter (no rigid rings)
   for (let i = 0; i < count; i++) {
     let px, py;
-    if (i < 8) {
-      const angle = (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-      const radius = minDim * (0.22 + Math.random() * 0.18);
-      px = Math.min(width - 30, Math.max(30, targetX + Math.cos(angle) * radius));
-      py = Math.min(height - 50, Math.max(120, targetY + Math.sin(angle) * radius));
+    if (i < 10) {
+      // Natural organic offset around letter
+      const offsetX = (Math.random() - 0.5 + Math.random() - 0.5) * minDim * 0.22;
+      const offsetY = (Math.random() - 0.5 + Math.random() - 0.5) * minDim * 0.22;
+      px = Math.min(width - 30, Math.max(30, targetX + offsetX));
+      py = Math.min(height - 50, Math.max(130, targetY + offsetY));
     } else {
       px = (i * (width / count) + Math.sin(i * 2) * 45 + Math.random() * 30) % (width - 60) + 30;
       py = 140 + ((i * 85 + Math.random() * 30) % (height - 220));
@@ -357,16 +556,16 @@ function generateBeachProps(targetX = width / 2, targetY = height / 2) {
     let propType = 'pebble';
     let propSize = minDim * (0.022 + Math.random() * 0.028);
 
-    if (rand < 0.08) {
+    if (rand < 0.10) {
       propType = 'shell';
       propSize = minDim * (0.045 + Math.random() * 0.025);
-    } else if (rand < 0.14) {
+    } else if (rand < 0.16) {
       propType = 'spiral_shell';
       propSize = minDim * (0.042 + Math.random() * 0.022);
-    } else if (rand < 0.18) {
+    } else if (rand < 0.20) {
       propType = 'starfish';
       propSize = minDim * (0.052 + Math.random() * 0.028);
-    } else if (rand < 0.20) {
+    } else if (rand < 0.23) {
       propType = 'crab';
       propSize = minDim * (0.048 + Math.random() * 0.024);
     }
@@ -399,12 +598,12 @@ function renderInflatablePoolToy(char, hue) {
 
   tileCtx.textAlign = 'center';
   tileCtx.textBaseline = 'middle';
-  tileCtx.font = `600 ${fontSize}px Fredoka, "Arial Rounded MT Bold", sans-serif`;
+  tileCtx.font = `700 ${fontSize}px Fredoka, Rubik, "Arial Rounded MT Bold", sans-serif`;
 
   // 1. Heat-Sealed Vinyl Outer Border Seam
   tileCtx.save();
   tileCtx.strokeStyle = `hsl(${hue}, 85%, 22%)`;
-  tileCtx.lineWidth = 28;
+  tileCtx.lineWidth = 34;
   tileCtx.lineJoin = 'round';
   tileCtx.strokeText(char, cx, cy);
   tileCtx.restore();
@@ -442,6 +641,20 @@ function renderInflatablePoolToy(char, hue) {
   tileCtx.restore();
 }
 
+function getRandomCharacterPosition(w = width, h = height) {
+  const minX = Math.max(90, w * 0.18);
+  const maxX = Math.min(w - 90, w * 0.82);
+  const posX = minX + Math.random() * (maxX - minX);
+
+  const minY = Math.max(200, h * 0.28);
+  const maxY = Math.min(h - 130, h * 0.82);
+  const posY = minY + Math.random() * (maxY - minY);
+
+  return { x: posX, y: posY };
+}
+
+let nextLang = 'ru';
+
 function initLevel() {
   isWinning = false;
   winTimer = 0;
@@ -453,15 +666,19 @@ function initLevel() {
   particles = [];
   oldBeachProps = [];
 
-  const randomChar = ALL_CHARACTERS[Math.floor(Math.random() * ALL_CHARACTERS.length)];
+  const nextItem = getNextCharacter();
+  const randomChar = typeof nextItem === 'object' ? nextItem.char : nextItem;
+  const itemLang = typeof nextItem === 'object' ? nextItem.lang : (/[А-Яа-яЁё]/.test(randomChar) ? 'ru' : 'en');
   const hues = [340, 195, 45, 130, 270, 25, 185, 315, 90, 165];
   const currentHue = hues[Math.floor(Math.random() * hues.length)];
 
-  // Centered letter target positions optimized for mobile & desktop viewports!
-  const randomX = width * (0.42 + (Math.random() - 0.5) * 0.22);
-  const randomY = height * (0.48 + (Math.random() - 0.5) * 0.16);
+  // Fully dynamic responsive random position across full beach area (portrait & landscape)
+  const pos = getRandomCharacterPosition(width, height);
+  const randomX = pos.x;
+  const randomY = pos.y;
 
   activeCharacter = new ElasticCharacter(randomChar, randomX, randomY, currentHue);
+  activeCharacter.lang = itemLang;
   activeCharacter.rotation = (Math.random() - 0.5) * 0.7;
 
   renderInflatablePoolToy(randomChar, currentHue);
@@ -494,7 +711,7 @@ function initLevel() {
   maskCtx.rotate(activeCharacter.rotation);
   maskCtx.textAlign = 'center';
   maskCtx.textBaseline = 'middle';
-  maskCtx.font = `600 ${maskFontSize}px Fredoka, "Arial Rounded MT Bold", sans-serif`;
+  maskCtx.font = `700 ${maskFontSize}px Fredoka, Rubik, "Arial Rounded MT Bold", sans-serif`;
   maskCtx.fillStyle = '#ffffff';
   maskCtx.fillText(randomChar, 0, 0);
   maskCtx.restore();
@@ -518,7 +735,7 @@ function redrawMask() {
   maskCtx.rotate(activeCharacter.rotation);
   maskCtx.textAlign = 'center';
   maskCtx.textBaseline = 'middle';
-  maskCtx.font = `600 ${maskFontSize}px Fredoka, "Arial Rounded MT Bold", sans-serif`;
+  maskCtx.font = `700 ${maskFontSize}px Fredoka, Rubik, "Arial Rounded MT Bold", sans-serif`;
   maskCtx.fillStyle = '#ffffff';
   maskCtx.fillText(activeCharacter.char, 0, 0);
   maskCtx.restore();
@@ -530,6 +747,18 @@ function resizeGame() {
 
   width = canvas.width = window.innerWidth;
   height = canvas.height = window.innerHeight;
+
+  if (oldW && oldH && activeCharacter) {
+    const relX = activeCharacter.x / oldW;
+    const relY = activeCharacter.y / oldH;
+    const minX = Math.max(90, width * 0.18);
+    const maxX = Math.min(width - 90, width * 0.82);
+    const minY = Math.max(200, height * 0.28);
+    const maxY = Math.min(height - 130, height * 0.82);
+
+    activeCharacter.x = Math.max(minX, Math.min(maxX, relX * width));
+    activeCharacter.y = Math.max(minY, Math.min(maxY, relY * height));
+  }
 
   if (oldW && oldH && (oldW !== width || oldH !== height) && dirtCanvas && dirtCanvas.width > 0) {
     const tempCanvas = document.createElement('canvas');
@@ -616,19 +845,22 @@ function triggerVictory() {
 
   // Pronounce character in high-quality real audio voiceover!
   if (activeCharacter) {
-    playLetterAudio(activeCharacter.char);
+    speakCharacter(activeCharacter);
   }
 
   oldBeachProps = beachProps.map(p => ({ ...p, isFloating: true }));
   beachProps = [];
 
-  nextChar = ALL_CHARACTERS[Math.floor(Math.random() * ALL_CHARACTERS.length)];
+  const nextItem = getNextCharacter();
+  nextChar = typeof nextItem === 'object' ? nextItem.char : nextItem;
+  nextLang = typeof nextItem === 'object' ? nextItem.lang : (/[А-Яа-яЁё]/.test(nextChar) ? 'ru' : 'en');
   const hues = [340, 195, 45, 130, 270, 25, 185, 315, 90, 165];
   nextHue = hues[Math.floor(Math.random() * hues.length)];
 
-  // Centered letter target positions optimized for mobile & desktop viewports!
-  nextX = width * (0.42 + (Math.random() - 0.5) * 0.22);
-  nextY = height * (0.48 + (Math.random() - 0.5) * 0.16);
+  // Fully dynamic responsive random position across full beach area (portrait & landscape)
+  const pos = getRandomCharacterPosition(width, height);
+  nextX = pos.x;
+  nextY = pos.y;
 
   pendingNewProps = generateBeachProps(nextX, nextY);
   playUndertowSound();
@@ -694,9 +926,20 @@ function handlePointerMove(x, y, id) {
   const touchVx = touch.x - touch.px;
   const touchVy = touch.y - touch.py;
 
-  // Touch Push Physics for Beach Props (BURIED ARTIFACTS ARE IMMOVABLE UNDER SAND!)
+  // Touch Physics & Archeological Excavation for Beach Props
   for (const prop of beachProps) {
-    if (prop.isFloating || prop.isBuried) continue; // IMMOVABLE UNDER SAND!
+    if (prop.isBuried) {
+      const dx = prop.x - touch.x;
+      const dy = prop.y - touch.y;
+      const dist = Math.hypot(dx, dy);
+      const excavateRadius = Math.max(80, prop.size * 1.6);
+      if (dist < excavateRadius) {
+        prop.uncoverProgress = Math.min(1.0, (prop.uncoverProgress || 0) + 0.04);
+      }
+      continue;
+    }
+
+    if (prop.isFloating) continue;
     const dx = prop.x - touch.x;
     const dy = prop.y - touch.y;
     const dist = Math.hypot(dx, dy);
@@ -879,12 +1122,12 @@ function update() {
         if (prop.x < 30) { prop.x = 30; prop.vx *= -0.5; }
         if (prop.x > width - 30) { prop.x = width - 30; prop.vx *= -0.5; }
         if (prop.y > height - 60) { prop.y = height - 60; prop.vy *= -0.5; }
-      }
 
-      if (prop.type !== 'pebble' && prop.y <= currentShorelineY + 45) {
-        prop.isFloating = true;
-        prop.vy = -2.2;
-        if (splashSynth && Math.random() < 0.6) splashSynth.play();
+        if (prop.type !== 'pebble' && prop.y <= currentShorelineY + 45) {
+          prop.isFloating = true;
+          prop.vy = -2.2;
+          if (splashSynth && Math.random() < 0.6) splashSynth.play();
+        }
       }
     }
   }
@@ -1013,6 +1256,7 @@ function update() {
         isWinning = false;
         
         activeCharacter = new ElasticCharacter(nextChar, nextX, nextY, nextHue);
+        activeCharacter.lang = nextLang;
         activeCharacter.rotation = (Math.random() - 0.5) * 0.7;
         renderInflatablePoolToy(nextChar, nextHue);
 
@@ -1026,7 +1270,7 @@ function update() {
         maskCtx.rotate(activeCharacter.rotation);
         maskCtx.textAlign = 'center';
         maskCtx.textBaseline = 'middle';
-        maskCtx.font = `600 ${maskFontSize}px Fredoka, "Arial Rounded MT Bold", sans-serif`;
+        maskCtx.font = `700 ${maskFontSize}px Fredoka, Rubik, "Arial Rounded MT Bold", sans-serif`;
         maskCtx.fillStyle = '#ffffff';
         maskCtx.fillText(nextChar, 0, 0);
         maskCtx.restore();
@@ -1049,15 +1293,20 @@ function render3DBeachProp(ctx, prop) {
 
   const sz = prop.size;
 
-  // 1. ULTRA-SOFT SMOOTH RADIAL GRADIENT CONTACT SHADOW ON SAND
-  const shGrad = ctx.createRadialGradient(2, prop.isFloating ? 8 : 4, sz * 0.2, 2, prop.isFloating ? 8 : 4, sz * 1.3);
-  shGrad.addColorStop(0, prop.isFloating ? 'rgba(0, 40, 80, 0.42)' : 'rgba(40, 20, 5, 0.38)');
-  shGrad.addColorStop(0.5, prop.isFloating ? 'rgba(0, 40, 80, 0.18)' : 'rgba(40, 20, 5, 0.15)');
+  // 1. SOFT NATURAL CONTACT SHADOW ON SAND
+  const shadowRadiusX = prop.isBuried ? sz * 0.55 : (prop.isFloating ? sz * 0.9 : sz * 0.65);
+  const shadowRadiusY = prop.isBuried ? sz * 0.38 : (prop.isFloating ? sz * 0.6 : sz * 0.45);
+  const shadowOffsetY = prop.isFloating ? 6 : 2;
+  const shadowAlpha = prop.isBuried ? 0.14 : (prop.isFloating ? 0.25 : 0.18);
+
+  const shGrad = ctx.createRadialGradient(1, shadowOffsetY, sz * 0.1, 1, shadowOffsetY, shadowRadiusX * 1.1);
+  shGrad.addColorStop(0, prop.isFloating ? `rgba(0, 40, 80, ${shadowAlpha})` : `rgba(45, 25, 10, ${shadowAlpha})`);
+  shGrad.addColorStop(0.6, prop.isFloating ? `rgba(0, 40, 80, ${shadowAlpha * 0.4})` : `rgba(45, 25, 10, ${shadowAlpha * 0.4})`);
   shGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
   ctx.fillStyle = shGrad;
   ctx.beginPath();
-  ctx.ellipse(2, prop.isFloating ? 8 : 4, sz * 1.25, sz * 0.85, 0, 0, Math.PI * 2);
+  ctx.ellipse(1, shadowOffsetY, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (prop.type === 'pebble') {
@@ -1662,10 +1911,18 @@ function draw() {
     ctx.restore();
   }
 
-  // 3. DRAW BURIED ARTIFACTS / RELICS (UNDER THE SAND LAYER, SO THEY GET UNCOVERED WHILE DIGGING!)
+  // 3. DRAW BURIED ARTIFACTS / RELICS (REQUIRE SUSTAINED EXCAVATION RUBBING TO REVEAL)
   for (const prop of beachProps) {
     if (prop.isBuried) {
-      render3DBeachProp(ctx, prop);
+      const prog = prop.uncoverProgress || 0;
+      if (prog > 0.05) {
+        const artifactAlpha = Math.min(1.0, (prog - 0.05) / 0.40);
+
+        ctx.save();
+        ctx.globalAlpha = artifactAlpha;
+        render3DBeachProp(ctx, prop);
+        ctx.restore();
+      }
     }
   }
 
@@ -1754,6 +2011,73 @@ function draw() {
   vigGrad.addColorStop(1, 'rgba(0,10,20,0.32)');
   ctx.fillStyle = vigGrad;
   ctx.fillRect(0, 0, width, height);
+}
+
+// SETTINGS MODAL UI HANDLER
+const settingsBtn = document.getElementById('settingsBtn');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+
+const chkRussianDigits = document.getElementById('chkRussianDigits');
+const chkEnglishDigits = document.getElementById('chkEnglishDigits');
+const chkRussian = document.getElementById('chkRussian');
+const chkEnglish = document.getElementById('chkEnglish');
+const chkShuffle = document.getElementById('chkShuffle');
+
+function syncCheckboxesFromSettings() {
+  if (chkRussianDigits) chkRussianDigits.checked = settings.includeRussianDigits;
+  if (chkEnglishDigits) chkEnglishDigits.checked = settings.includeEnglishDigits;
+  if (chkRussian) chkRussian.checked = settings.includeRussian;
+  if (chkEnglish) chkEnglish.checked = settings.includeEnglish;
+  if (chkShuffle) chkShuffle.checked = settings.isShuffle;
+}
+
+function updateSettingsFromCheckboxes() {
+  settings.includeRussianDigits = chkRussianDigits ? chkRussianDigits.checked : true;
+  settings.includeEnglishDigits = chkEnglishDigits ? chkEnglishDigits.checked : true;
+  settings.includeRussian = chkRussian ? chkRussian.checked : true;
+  settings.includeEnglish = chkEnglish ? chkEnglish.checked : true;
+  settings.isShuffle = chkShuffle ? chkShuffle.checked : true;
+
+  if (!settings.includeRussianDigits && !settings.includeEnglishDigits && !settings.includeRussian && !settings.includeEnglish) {
+    settings.includeRussianDigits = true;
+    if (chkRussianDigits) chkRussianDigits.checked = true;
+  }
+
+  saveSettings();
+}
+
+if (settingsBtn) {
+  const openSettings = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    syncCheckboxesFromSettings();
+    if (settingsModal) settingsModal.classList.remove('hidden');
+  };
+  settingsBtn.addEventListener('click', openSettings);
+  settingsBtn.addEventListener('touchstart', openSettings, { passive: false });
+}
+
+if (closeSettingsBtn) {
+  const closeSettings = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (settingsModal) settingsModal.classList.add('hidden');
+  };
+  closeSettingsBtn.addEventListener('click', closeSettings);
+  closeSettingsBtn.addEventListener('touchstart', closeSettings, { passive: false });
+}
+
+if (saveSettingsBtn) {
+  const saveSettingsHandler = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    updateSettingsFromCheckboxes();
+    if (settingsModal) settingsModal.classList.add('hidden');
+  };
+  saveSettingsBtn.addEventListener('click', saveSettingsHandler);
+  saveSettingsBtn.addEventListener('touchstart', saveSettingsHandler, { passive: false });
 }
 
 // Start Game

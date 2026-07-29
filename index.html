@@ -11,17 +11,69 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>DigiClean - Fullscreen Resize State Fix Engine</title>
-  <link rel="stylesheet" href="style.css?v=81">
+  <title>DigiClean - Beach Excavator</title>
+  <link rel="stylesheet" href="style.css?v=82">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Rubik:wght@700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
-  <button id="fullscreenBtn" aria-label="Toggle Fullscreen">⛶</button>
+  <div class="top-bar">
+    <button id="settingsBtn" aria-label="Open Settings" class="ui-btn">⚙️</button>
+    <button id="fullscreenBtn" aria-label="Toggle Fullscreen" class="ui-btn">⛶</button>
+  </div>
+
   <canvas id="gameCanvas"></canvas>
-  
-  <script src="physics.js?v=81"></script>
-  <script src="game.js?v=81"></script>
+
+  <!-- Settings Modal Dialog -->
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Game Settings</h2>
+        <button id="closeSettingsBtn" class="close-btn" aria-label="Close Settings">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="setting-group-title">Categories</div>
+
+        <label class="custom-checkbox">
+          <input type="checkbox" id="chkRussianDigits" checked>
+          <span class="checkmark"></span>
+          <span class="label-text">Russian Digits (0 – 9)</span>
+        </label>
+
+        <label class="custom-checkbox">
+          <input type="checkbox" id="chkEnglishDigits" checked>
+          <span class="checkmark"></span>
+          <span class="label-text">English Digits (0 – 9)</span>
+        </label>
+
+        <label class="custom-checkbox">
+          <input type="checkbox" id="chkRussian" checked>
+          <span class="checkmark"></span>
+          <span class="label-text">Russian Alphabet (А – Я)</span>
+        </label>
+
+        <label class="custom-checkbox">
+          <input type="checkbox" id="chkEnglish" checked>
+          <span class="checkmark"></span>
+          <span class="label-text">English Alphabet (A – Z)</span>
+        </label>
+
+        <div class="setting-group-title">Order</div>
+
+        <label class="custom-checkbox">
+          <input type="checkbox" id="chkShuffle" checked>
+          <span class="checkmark"></span>
+          <span class="label-text">Shuffle Order</span>
+        </label>
+      </div>
+
+      <button id="saveSettingsBtn" class="save-btn">Done</button>
+    </div>
+  </div>
+
+  <script src="physics.js?v=82"></script>
+  <script src="game.js?v=82"></script>
 </body>
 </html>

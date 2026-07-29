@@ -1,4 +1,4 @@
-/* Fully black background, no scrolling, no gestures (perfect for toddlers) */
+/* Fully black background, no scrolling, no gestures (perfect for toddlers & kids) */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -16,31 +16,37 @@ html, body {
   padding: 0;
   overflow: hidden;
   background-color: #000000;
-  font-family: 'Fredoka', cursive, sans-serif;
-  position: fixed; /* Prevents bounce scroll on mobile safari */
+  font-family: 'Comfortaa', 'Fredoka', cursive, sans-serif;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  touch-action: none; /* Disable panning/zooming entirely */
+  touch-action: none;
 }
 
-#fullscreenBtn {
+/* Top Floating Bar for UI Buttons */
+.top-bar {
   position: absolute;
   top: 14px;
   right: 14px;
+  display: flex;
+  gap: 12px;
+  z-index: 9999;
+}
+
+.ui-btn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
   background: rgba(0, 45, 80, 0.65);
   border: 2.5px solid #ffffff;
   color: #ffffff;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 99999;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
@@ -50,7 +56,7 @@ html, body {
   transition: transform 0.12s ease, background 0.12s ease;
 }
 
-#fullscreenBtn:active {
+.ui-btn:active {
   transform: scale(0.90);
   background: rgba(0, 90, 150, 0.95);
 }
@@ -61,4 +67,180 @@ html, body {
   height: 100dvh;
   height: 100vh;
   background-color: #000000;
+}
+
+/* Glassmorphism Settings Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 15, 30, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+.modal-overlay.hidden {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-card {
+  width: 90%;
+  max-width: 420px;
+  background: linear-gradient(135deg, rgba(20, 40, 65, 0.95), rgba(10, 25, 45, 0.98));
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  padding: 24px;
+  color: #ffffff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  font-family: 'Comfortaa', 'Fredoka', cursive, sans-serif;
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.modal-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffde59;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.close-btn:active {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.setting-group-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8ed6ff;
+  font-weight: 700;
+  margin-top: 6px;
+  margin-bottom: 2px;
+}
+
+/* Custom Kid-Friendly Checkbox Styling */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 44px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f0f8ff;
+  user-select: none;
+  min-height: 32px;
+}
+
+.custom-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 32px;
+  width: 32px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+  background-color: #00c853;
+  border-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 200, 83, 0.4);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.custom-checkbox .checkmark:after {
+  left: 10px;
+  top: 5px;
+  width: 8px;
+  height: 15px;
+  border: solid white;
+  border-width: 0 3.5px 3.5px 0;
+  transform: rotate(45deg);
+}
+
+.save-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff9100, #ff6d00);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(255, 109, 0, 0.45);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.save-btn:active {
+  transform: scale(0.97);
+  filter: brightness(1.1);
 }
